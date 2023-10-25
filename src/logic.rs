@@ -121,14 +121,32 @@ impl Board {
         }
     }
 
+    /// Reset player turn and grid
+    pub fn reset(&mut self) {
+        self.grid = vec![vec![CellState::Empty; self.size]; self.size];
+        self.turn = CellState::X;
+    }
+
     /// Play move at position x_axis, y_axis
-    fn play_move(&mut self, x_axis: usize, y_axis: usize) {
-        if (x_axis < self.size && y_axis < self.size)
-            && self.grid[x_axis][y_axis] == CellState::Empty
-        {
+    pub fn play_move(&mut self, x_axis: usize, y_axis: usize) {
+        println!(
+            "Player {:?} attempting to play at position ({},{})",
+            self.turn, x_axis, y_axis
+        );
+        if self.is_valid_move(x_axis, y_axis) {
             self.grid[x_axis][y_axis] = self.turn;
             self.next_turn();
         };
+    }
+
+    /// Checks if move is valid
+    pub fn is_valid_move(&self, x_axis: usize, y_axis: usize) -> bool {
+        (x_axis < self.size && y_axis < self.size) && self.grid[x_axis][y_axis] == CellState::Empty
+    }
+
+    /// Returns current player
+    pub fn get_current_player(&self) -> CellState {
+        self.turn
     }
 
     /// Update player turn
@@ -155,8 +173,10 @@ impl Board {
 
     /// Returns the winner of the game if there's any
     pub fn is_winner(&self) -> Option<CellState> {
+        println!("Checking for winner");
         // rows
         for row in self.grid.iter() {
+            println!("Row: {:?}", row);
             if let Some(winner) = self.find_winner(row) {
                 return Some(winner);
             }
@@ -165,6 +185,7 @@ impl Board {
         // columns
         for index in 0..self.size {
             let column = &self.grid[index];
+            println!("Column {}: {:?}", index, column);
             if let Some(winner) = self.find_winner(&column) {
                 return Some(winner);
             }
@@ -177,6 +198,7 @@ impl Board {
                     .iter()
                     .map(|&(x_axis, y_axis)| self.grid[x_axis][y_axis])
                     .collect();
+                println!("Diagonal: {:?}", diagonal);
                 if let Some(winner) = self.find_winner(&diagonal) {
                     return Some(winner);
                 }
@@ -192,9 +214,10 @@ impl Board {
         let mut count_consecutive = 0;
         let mut previous_cell = CellState::Empty;
         for cell in sequence.iter() {
-            if *cell == previous_cell {
+            if *cell == previous_cell && *cell != CellState::Empty {
                 count_consecutive += 1;
-                if count_consecutive == self.win_condition_length {
+                println!("{}", count_consecutive);
+                if count_consecutive == self.win_condition_length - 1 {
                     return Some(*cell);
                 }
             } else {
