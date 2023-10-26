@@ -6,7 +6,10 @@ use fltk::{
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::logic::{Board, CellState};
+use crate::{
+    agent::{train, Action, QTable},
+    logic::{Board, CellState},
+};
 
 pub struct TicTacToeApp {}
 
@@ -24,7 +27,7 @@ const DRAW_IMAGE: &[u8] = include_bytes!("../assets/draw.png");
 const EMPTY_IMAGE: &[u8] = &[];
 
 impl TicTacToeApp {
-    pub fn run() {
+    pub fn run(train_agent: bool) {
         let app = app::App::default();
         // Setup stage
         let wind = Rc::new(RefCell::new(Window::new(
@@ -58,6 +61,16 @@ impl TicTacToeApp {
             let _board = Rc::new(RefCell::new(_board));
             let _board_cloned = _board.clone();
 
+            // Train agent
+            let mut agent: Option<Rc<RefCell<QTable>>> = None;
+            if train_agent {
+                agent = Some(Rc::new(RefCell::new(train(
+                    1000,
+                    100,
+                    board_size,
+                    win_condition,
+                ))));
+            }
             let game_window_size = board_size as i32 * button_size;
 
             let game_wind = Rc::new(RefCell::new(Window::new(
@@ -111,6 +124,7 @@ impl TicTacToeApp {
                     let cell_cloned = cell.clone();
                     let board = _board.clone();
                     let game_wind_cloned = game_wind.clone();
+                    let agent_cloned = agent.clone(); // agent.as_ref().map(|agent_ref| agent_ref.clone());
 
                     // Callback closure
                     cell.borrow_mut().set_callback(move |_| {
@@ -120,6 +134,22 @@ impl TicTacToeApp {
                             match player {
                                 CellState::X => {
                                     cell_cloned.borrow_mut().set_label("X");
+                                    match &agent_cloned {
+                                        Some(agent_) => {
+                                            let possible_actions = board
+                                                .borrow_mut()
+                                                .get_possible_actions()
+                                                .iter()
+                                                .map(|&(x_axis, y_axis)| Action { x_axis, y_axis })
+                                                .collect::<Vec<Action>>();
+                                            let action = agent_.borrow_mut().epsilon_greedy_search(
+                                                &board.borrow_mut().get_grid(),
+                                                &possible_actions,
+                                            );
+                                            println!("Agent play: {:?}", action);
+                                        }
+                                        None => {}
+                                    }
                                 }
                                 CellState::O => {
                                     cell_cloned.borrow_mut().set_label("O");

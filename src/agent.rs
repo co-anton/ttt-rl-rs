@@ -12,10 +12,10 @@ impl Reward {
     pub const INTERMEDIATE: i32 = 0; // Repeated values are fine in this context
 }
 
-#[derive(Hash, Eq, Clone, PartialEq, Copy)]
-struct Action {
-    x_axis: usize,
-    y_axis: usize,
+#[derive(Hash, Eq, Clone, PartialEq, Copy, Debug)]
+pub struct Action {
+    pub x_axis: usize,
+    pub y_axis: usize,
 }
 
 type State = Vec<Vec<CellState>>;
@@ -77,7 +77,7 @@ impl QTable {
         );
     }
 
-    fn epsilon_greedy_search(&self, state: &State, possible_actions: &Vec<Action>) -> Action {
+    pub fn epsilon_greedy_search(&self, state: &State, possible_actions: &Vec<Action>) -> Action {
         if rand::thread_rng().gen::<f64>() < self.epsilon {
             *possible_actions.choose(&mut rand::thread_rng()).unwrap()
         } else {
@@ -173,10 +173,10 @@ fn get_hyperparameters(epoch: usize, n_epoch: usize) -> (f64, f64, f64) {
     (alpha, gamma, epsilon)
 }
 
-pub fn train(n_games: usize, n_epoch: usize) -> QTable {
+pub fn train(n_games: usize, n_epoch: usize, size: usize, win_condition: usize) -> QTable {
     let (mut alpha, mut gamma, mut epsilon) = get_hyperparameters(0, n_epoch);
     let mut agent = QTable::new(alpha, gamma, epsilon);
-    let mut env = Environment::new(3, 3);
+    let mut env = Environment::new(size, win_condition);
     for epoch in 0..n_epoch {
         let mut n_wins = 0;
         let mut n_draws = 0;

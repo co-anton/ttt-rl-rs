@@ -24,8 +24,8 @@ struct Args {
 fn main() {
     let args = Args::parse();
     if args.gui {
-        gui::TicTacToeApp::run();
+        gui::TicTacToeApp::run(false);
     } else if args.training {
-        agent::train(1000, 100);
+        gui::TicTacToeApp::run(true);
     }
 }
