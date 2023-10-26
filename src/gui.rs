@@ -65,8 +65,8 @@ impl TicTacToeApp {
             let mut agent: Option<Rc<RefCell<QTable>>> = None;
             if train_agent {
                 agent = Some(Rc::new(RefCell::new(train(
-                    1000,
-                    100,
+                    10000,
+                    200,
                     board_size,
                     win_condition,
                 ))));
@@ -124,13 +124,15 @@ impl TicTacToeApp {
                     let cell_cloned = cell.clone();
                     let board = _board.clone();
                     let game_wind_cloned = game_wind.clone();
-                    let agent_cloned = agent.as_ref().map(|agent_ref| agent_ref.clone());
+                    let agent_cloned = agent.clone(); //agent.as_ref().map(|agent_ref| agent_ref.clone());
 
                     // Callback closure
                     cell.borrow_mut().set_callback(move |_| {
-                        println!("Attempting to play move [{}, {}]", i, j);
+                        // println!("Attempting to play move [{}, {}]", i, j);
                         if board.borrow_mut().is_valid_move(i, j) {
                             let player = board.borrow_mut().get_current_player();
+                            board.borrow_mut().play_move(i, j);
+                            println!("Played move [{}, {}]", i, j);
                             match player {
                                 CellState::X => {
                                     cell_cloned.borrow_mut().set_label("X");
@@ -156,8 +158,6 @@ impl TicTacToeApp {
                                 }
                                 CellState::Empty => {}
                             };
-                            board.borrow_mut().play_move(i, j);
-                            println!("Played move [{}, {}]", i, j);
 
                             // End conditions
                             let mut outcome = Outcomes::Undefined;

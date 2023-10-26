@@ -1,5 +1,9 @@
 use rand::prelude::*;
-use std::{collections::HashMap, usize};
+use rayon::prelude::*;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+use std::{cell::RefCell, collections::HashMap, usize};
 
 use crate::logic::{Board, CellState};
 
@@ -20,7 +24,7 @@ pub struct Action {
 
 type State = Vec<Vec<CellState>>;
 
-#[derive(Hash, Eq, PartialEq, Clone)]
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
 struct StateAction {
     state: State,
     action: Action,
@@ -147,8 +151,8 @@ impl Environment {
 }
 
 fn get_hyperparameters(epoch: usize, n_epoch: usize) -> (f64, f64, f64) {
-    let grid_alpha = [0.9, 0.6, 0.3, 0.2, 0.1];
-    let grid_epsilon = [0.5, 0.3, 0.1, 0.01];
+    let grid_alpha = [0.4, 0.3, 0.2, 0.1];
+    let grid_epsilon = [0.3, 0.1, 0.01];
     let grid_gamma = [0.9, 0.95, 0.99];
     let progress = epoch as f64 / n_epoch as f64;
 
@@ -165,14 +169,22 @@ fn get_hyperparameters(epoch: usize, n_epoch: usize) -> (f64, f64, f64) {
     (alpha, gamma, epsilon)
 }
 
-pub fn train(n_games: usize, n_epoch: usize, size: usize, win_condition: usize) -> QTable {
+pub fn train(
+    n_games: usize,
+    n_epoch: usize,
+    size: usize,
+    win_condition: usize,
+) -> Arc<Mutex<QTable>> {
     let (mut alpha, mut gamma, mut epsilon) = get_hyperparameters(0, n_epoch);
-    let mut agent = QTable::new(alpha, gamma, epsilon);
-    let mut env = Environment::new(size, win_condition, CellState::Empty);
+    let agent = Arc::new(Mutex::new(QTable::new(alpha, gamma, epsilon)));
+
     for epoch in 0..n_epoch {
-        let mut n_wins = 0;
-        let mut n_draws = 0;
-        for _game in 0..n_games {
+        let n_wins = AtomicUsize::new(0);
+        let n_draws = AtomicUsize::new(0);
+        let agent_cloned = agent.clone();
+
+        (0..n_games).into_par_iter().for_each(|_game| {
+            let mut env = Environment::new(size, win_condition, CellState::Empty);
             env.reset();
             let player = if rand::thread_rng().gen::<f64>() > 0.5 {
                 CellState::X
@@ -182,37 +194,54 @@ pub fn train(n_games: usize, n_epoch: usize, size: usize, win_condition: usize) 
             env.player = player;
             let mut state = env.get_grid();
             let mut possible_actions = env.get_possibe_moves();
+            let mut local_wins = 0;
+            let mut local_draws = 0;
 
             loop {
-                let action = agent.epsilon_greedy_search(&state, &possible_actions);
+                let action = {
+                    let agent_lock = agent_cloned.lock().unwrap();
+                    agent_lock.epsilon_greedy_search(&state, &possible_actions)
+                };
                 let (next_state, reward) = env.step(action);
                 possible_actions = env.get_possibe_moves();
+
                 if env.get_player() == player {
-                    agent.update_table(&state, action, &next_state, &possible_actions, reward);
-                    state = next_state;
+                    let mut agent_lock = agent_cloned.lock().unwrap();
+                    agent_lock.update_table(&state, action, &next_state, &possible_actions, reward);
                 }
+
                 if reward != Reward::INTERMEDIATE {
                     if reward == Reward::WIN {
-                        n_wins += 1
+                        n_wins.fetch_add(1, Ordering::Relaxed);
                     } else if reward == Reward::DRAW {
-                        n_draws += 1
-                    };
+                        n_draws.fetch_add(1, Ordering::Relaxed);
+                    }
                     break;
                 }
+
+                state = next_state;
             }
-        }
+            // Accumulate wins and draws; thread-safe operations could be here if needed
+        });
+
         (alpha, gamma, epsilon) = get_hyperparameters(epoch, n_epoch);
-        agent.alpha = alpha;
-        agent.gamma = gamma;
-        agent.epsilon = epsilon;
+        let mut agent_lock = agent.lock().unwrap();
+        agent_lock.alpha = alpha;
+        agent_lock.gamma = gamma;
+        agent_lock.epsilon = epsilon;
+
+        let final_n_wins = n_wins.load(Ordering::Relaxed);
+        let final_n_draws = n_draws.load(Ordering::Relaxed);
+        // Output training stats; note that this should be adapted to collect the parallel updates to `n_wins` and `n_draws`
         println!(
             "Epoch: {}, win rate: {}, draw rate {}, loss rate {}, hyper params {:?}",
             epoch,
-            n_wins as f64 / n_games as f64,
-            n_draws as f64 / n_games as f64,
-            (n_games - n_wins - n_draws) as f64 / n_games as f64,
+            final_n_wins as f64 / n_games as f64,
+            final_n_draws as f64 / n_games as f64,
+            (n_games - final_n_wins - final_n_draws) as f64 / n_games as f64,
             (alpha, gamma, epsilon)
         );
     }
+
     agent
 }
