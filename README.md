@@ -1,4 +1,5 @@
 # Tic tac toe 
+![Tic Tac Toe Image](./assets/repo.png)
 
 The goal of this project is implementing a tic tac toe RL agent in rust
 
