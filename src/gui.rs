@@ -124,7 +124,7 @@ impl TicTacToeApp {
                     let cell_cloned = cell.clone();
                     let board = _board.clone();
                     let game_wind_cloned = game_wind.clone();
-                    let agent_cloned = agent.clone(); // agent.as_ref().map(|agent_ref| agent_ref.clone());
+                    let agent_cloned = agent.as_ref().map(|agent_ref| agent_ref.clone());
 
                     // Callback closure
                     cell.borrow_mut().set_callback(move |_| {

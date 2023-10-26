@@ -97,36 +97,24 @@ struct Environment {
     board: Board,
     reward: i32,
     player: CellState,
-    actions: Vec<Action>,
 }
 
 impl Environment {
-    fn new(size: usize, win_condition: usize) -> Self {
-        let mut rng_thread = rand::thread_rng();
-        let player = if rng_thread.gen::<f64>() > 0.5 {
-            CellState::X
-        } else {
-            CellState::O
-        };
-        let actions: Vec<Action> = Vec::new();
-
+    fn new(size: usize, win_condition: usize, player: CellState) -> Self {
         Self {
             board: Board::new(size, win_condition),
             reward: Reward::INTERMEDIATE,
             player,
-            actions,
         }
     }
 
     fn reset(&mut self) {
         self.board.reset();
         self.reward = Reward::INTERMEDIATE;
-        self.actions = Vec::new();
     }
 
     fn step(&mut self, action: Action) -> (State, i32) {
         self.board.play_move(action.x_axis, action.y_axis);
-        self.actions.push(action);
 
         if let Some(winner) = self.board.is_winner() {
             self.reward = if winner == self.player {
@@ -152,6 +140,10 @@ impl Environment {
     fn get_grid(&self) -> State {
         self.board.get_grid()
     }
+
+    fn get_player(&self) -> CellState {
+        self.board.get_current_player()
+    }
 }
 
 fn get_hyperparameters(epoch: usize, n_epoch: usize) -> (f64, f64, f64) {
@@ -176,12 +168,18 @@ fn get_hyperparameters(epoch: usize, n_epoch: usize) -> (f64, f64, f64) {
 pub fn train(n_games: usize, n_epoch: usize, size: usize, win_condition: usize) -> QTable {
     let (mut alpha, mut gamma, mut epsilon) = get_hyperparameters(0, n_epoch);
     let mut agent = QTable::new(alpha, gamma, epsilon);
-    let mut env = Environment::new(size, win_condition);
+    let mut env = Environment::new(size, win_condition, CellState::Empty);
     for epoch in 0..n_epoch {
         let mut n_wins = 0;
         let mut n_draws = 0;
         for _game in 0..n_games {
             env.reset();
+            let player = if rand::thread_rng().gen::<f64>() > 0.5 {
+                CellState::X
+            } else {
+                CellState::O
+            };
+            env.player = player;
             let mut state = env.get_grid();
             let mut possible_actions = env.get_possibe_moves();
 
@@ -189,8 +187,10 @@ pub fn train(n_games: usize, n_epoch: usize, size: usize, win_condition: usize) 
                 let action = agent.epsilon_greedy_search(&state, &possible_actions);
                 let (next_state, reward) = env.step(action);
                 possible_actions = env.get_possibe_moves();
-                agent.update_table(&state, action, &next_state, &possible_actions, reward);
-                state = next_state;
+                if env.get_player() == player {
+                    agent.update_table(&state, action, &next_state, &possible_actions, reward);
+                    state = next_state;
+                }
                 if reward != Reward::INTERMEDIATE {
                     if reward == Reward::WIN {
                         n_wins += 1
