@@ -1,5 +1,5 @@
 /// Representation of the state of a cell
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum CellState {
     Empty,
     X,
@@ -13,18 +13,18 @@ pub struct Board {
     turn: CellState,
     size: usize,
     win_condition_length: usize,
-    /// first vector is for main diagonal and anti diagonal, then it's a vector of DiagonalCoord
-    diagonals_coords: Vec<Vec<DiagonalCoord>>,
+    /// first vector is for main diagonal and anti diagonal, then it's a vector of Coords
+    diagonals_coords: Vec<Vec<Coords>>,
 }
 
-type DiagonalCoord = Vec<(usize, usize)>;
+pub type Coords = Vec<(usize, usize)>;
 
 fn generate_coords(
     start_row: usize,
     start_col: usize,
     length: usize,
     direction: fn() -> (isize, isize),
-) -> DiagonalCoord {
+) -> Coords {
     (0..length)
         .filter_map(|i| {
             let (x_delta, y_delta) = direction();
@@ -41,7 +41,7 @@ fn generate_coords(
         .collect()
 }
 
-fn calculate_diagonals_coords(size: usize, minimal_length: usize) -> Vec<Vec<DiagonalCoord>> {
+fn calculate_diagonals_coords(size: usize, minimal_length: usize) -> Vec<Vec<Coords>> {
     let mut all_diagonals = Vec::new();
     let mut main_diagonals = Vec::new();
     let mut anti_diagonals = Vec::new();
@@ -129,16 +129,16 @@ impl Board {
 
     /// Play move at position x_axis, y_axis
     pub fn play_move(&mut self, x_axis: usize, y_axis: usize) {
-        println!(
+        /* println!(
             "Player {:?} attempting to play at position ({},{})",
             self.turn, x_axis, y_axis
-        );
+        ); */
         if self.is_valid_move(x_axis, y_axis) {
             self.grid[x_axis][y_axis] = self.turn;
-            println!(
+            /* println!(
                 "New value at [{}, {}]: {:?}",
                 x_axis, y_axis, self.grid[x_axis][y_axis]
-            );
+            ); */
             self.next_turn();
         };
     }
@@ -177,11 +177,11 @@ impl Board {
 
     /// Returns the winner of the game if there's any
     pub fn is_winner(&self) -> Option<CellState> {
-        println!("Checking for winner");
-        println!("Grid: {:?}", self.grid);
+        // println!("Checking for winner");
+        // println!("Grid: {:?}", self.grid);
 
         for sequence in self.grid.iter() {
-            println!("sequence: {:?}", sequence);
+            // println!("sequence: {:?}", sequence);
             if let Some(winner) = self.find_winner(sequence) {
                 return Some(winner);
             }
@@ -189,7 +189,7 @@ impl Board {
 
         for index in 0..self.size {
             let sequence: Vec<CellState> = self.grid.iter().map(|seq| seq[index]).collect();
-            println!("sequence: {:?}", sequence);
+            // println!("sequence: {:?}", sequence);
             if let Some(winner) = self.find_winner(&sequence) {
                 return Some(winner);
             }
@@ -201,7 +201,7 @@ impl Board {
                     .iter()
                     .map(|&(x_axis, y_axis)| self.grid[x_axis][y_axis])
                     .collect();
-                println!("Diagonal: {:?}", diagonal);
+                // println!("Diagonal: {:?}", diagonal);
                 if let Some(winner) = self.find_winner(&diagonal) {
                     return Some(winner);
                 }
@@ -219,7 +219,7 @@ impl Board {
         for cell in sequence.iter() {
             if *cell == previous_cell && *cell != CellState::Empty {
                 count_consecutive += 1;
-                println!("{}", count_consecutive);
+                // println!("{}", count_consecutive);
                 if count_consecutive == self.win_condition_length - 1 {
                     return Some(*cell);
                 }
@@ -229,5 +229,22 @@ impl Board {
             }
         }
         None
+    }
+
+    pub fn get_possible_actions(&self) -> Coords {
+        let mut possible_actions = Vec::new();
+
+        for x_axis in 0..self.size {
+            for y_axis in 0..self.size {
+                if self.grid[x_axis][y_axis] == CellState::Empty {
+                    possible_actions.push((x_axis, y_axis));
+                }
+            }
+        }
+        possible_actions
+    }
+
+    pub fn get_grid(&self) -> Vec<Vec<CellState>> {
+        self.grid.clone()
     }
 }

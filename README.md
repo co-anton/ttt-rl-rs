@@ -3,6 +3,14 @@
 
 The goal of this project is implementing a tic tac toe RL agent in rust
 
+## Build game 
+
+Build dependencies
+
+```bash 
+sudo apt-get install libx11-dev libxext-dev libxft-dev libxinerama-dev libxcursor-dev libxrender-dev libxfixes-dev libpango1.0-dev libgl1-mesa-dev libglu1-mesa-dev
+```
+
 ## Run game 
 
 Runtime dependencies on Linux

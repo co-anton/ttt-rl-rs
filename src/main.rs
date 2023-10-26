@@ -1,5 +1,6 @@
 use clap::Parser;
 
+mod agent;
 mod gui;
 mod logic;
 
@@ -24,7 +25,7 @@ fn main() {
     let args = Args::parse();
     if args.gui {
         gui::TicTacToeApp::run();
-    } else {
-        println!("Not supported yet!");
+    } else if args.training {
+        agent::train(1000, 100);
     }
 }
