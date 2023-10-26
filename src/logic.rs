@@ -135,6 +135,10 @@ impl Board {
         );
         if self.is_valid_move(x_axis, y_axis) {
             self.grid[x_axis][y_axis] = self.turn;
+            println!(
+                "New value at [{}, {}]: {:?}",
+                x_axis, y_axis, self.grid[x_axis][y_axis]
+            );
             self.next_turn();
         };
     }
@@ -174,24 +178,23 @@ impl Board {
     /// Returns the winner of the game if there's any
     pub fn is_winner(&self) -> Option<CellState> {
         println!("Checking for winner");
-        // rows
-        for row in self.grid.iter() {
-            println!("Row: {:?}", row);
-            if let Some(winner) = self.find_winner(row) {
+        println!("Grid: {:?}", self.grid);
+
+        for sequence in self.grid.iter() {
+            println!("sequence: {:?}", sequence);
+            if let Some(winner) = self.find_winner(sequence) {
                 return Some(winner);
             }
         }
 
-        // columns
         for index in 0..self.size {
-            let column = &self.grid[index];
-            println!("Column {}: {:?}", index, column);
-            if let Some(winner) = self.find_winner(&column) {
+            let sequence: Vec<CellState> = self.grid.iter().map(|seq| seq[index]).collect();
+            println!("sequence: {:?}", sequence);
+            if let Some(winner) = self.find_winner(&sequence) {
                 return Some(winner);
             }
         }
 
-        // diagonals
         for diagonals_coords in self.diagonals_coords.iter() {
             for diagonal_coords in diagonals_coords.iter() {
                 let diagonal: Vec<CellState> = diagonal_coords

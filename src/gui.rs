@@ -134,6 +134,7 @@ impl TicTacToeApp {
 
                     // Callback closure
                     cell.borrow_mut().set_callback(move |_| {
+                        println!("Attempting to play move [{}, {}]", i, j);
                         if board.borrow_mut().is_valid_move(i, j) {
                             let player = board.borrow_mut().get_current_player();
                             match player {
@@ -146,6 +147,7 @@ impl TicTacToeApp {
                                 CellState::Empty => {}
                             };
                             board.borrow_mut().play_move(i, j);
+                            println!("Played move [{}, {}]", i, j);
 
                             // End conditions
                             let mut outcome = Outcomes::UNDEFINED;
@@ -161,7 +163,8 @@ impl TicTacToeApp {
                             }
 
                             // Board full condition
-                            if board.borrow_mut().is_board_full() {
+                            if board.borrow_mut().is_board_full() && outcome == Outcomes::UNDEFINED
+                            {
                                 println!("Board full");
                                 outcome = Outcomes::DRAW;
                             }
@@ -193,6 +196,7 @@ impl TicTacToeApp {
                                 };
                                 frame.set_image(Some(image));
 
+                                /*
                                 let mut play_again_button = Button::new(
                                     1024 / 2,
                                     1024 / 4 - 200 / 2,
@@ -206,9 +210,9 @@ impl TicTacToeApp {
                                 play_again_button.set_callback(move |_| {
                                     result_wind_closed.borrow_mut().hide();
                                     board_cloned.borrow_mut().reset();
-                                    // TODO reset the grid
+                                    // TODO go back to initial screen
                                 });
-
+                                */
                                 result_wind.borrow_mut().end();
                                 result_wind.borrow_mut().show();
                             }
