@@ -1,5 +1,5 @@
 [package]
-name = "tic_tac_toe_rl"
+name = "ttt_rl"
 version = "0.1.0"
 edition = "2021"
 
