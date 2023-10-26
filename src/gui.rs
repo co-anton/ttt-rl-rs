@@ -1,15 +1,10 @@
 use fltk::{
-    app,
-    button::Button,
-    draw, enums,
-    input::Input,
-    prelude::*,
-    text::{TextBuffer, TextDisplay},
+    app, button::Button, draw, enums, frame::Frame, image::PngImage, input::Input, prelude::*,
     window::Window,
 };
-use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
+use std::{cell::RefCell, path::PathBuf};
 
 use crate::logic::{Board, CellState};
 
@@ -77,6 +72,7 @@ impl TicTacToeApp {
                 "Tic Tac Toe",
             )));
             game_wind.borrow_mut().make_resizable(true);
+            /*
             let _game_wind_cloned = game_wind.clone();
 
             let play_again_button =
@@ -89,6 +85,7 @@ impl TicTacToeApp {
                 _play_again_button_cloned.borrow_mut().hide();
                 _game_wind_cloned.borrow_mut().redraw();
             });
+            */
 
             // Draw lines between buttons
             {
@@ -131,8 +128,8 @@ impl TicTacToeApp {
                     let cell = Rc::new(RefCell::new(cell));
                     let cell_cloned = cell.clone();
                     let board = _board.clone();
-                    let play_again_button_cloned = play_again_button.clone();
-                    let font_cloned = font.clone();
+                    // let play_again_button_cloned = play_again_button.clone();
+                    // let font_cloned = font.clone();
                     let game_wind_cloned = game_wind.clone();
 
                     // Callback closure
@@ -172,47 +169,48 @@ impl TicTacToeApp {
                             if outcome != Outcomes::UNDEFINED {
                                 game_wind_cloned.borrow_mut().hide();
                                 // Create a new window
-                                let mut result_wind = Window::new(200, 200, 400, 200, "Game Ended");
+                                let result_wind = Rc::new(RefCell::new(Window::new(
+                                    200,
+                                    200,
+                                    1024,
+                                    1024,
+                                    "Game Ended",
+                                )));
+                                let mut frame = Frame::new(0, 0, 1024, 1024, "");
+                                let path_image: PathBuf = match outcome {
+                                    Outcomes::WIN => PathBuf::from("assets/win.png"),
+                                    Outcomes::DRAW => PathBuf::from("assets/draw.png"),
+                                    Outcomes::LOSS => PathBuf::from("assets/loss.png"),
+                                    Outcomes::UNDEFINED => PathBuf::from(""),
+                                };
 
-                                /*
-                                let x_clip = game_wind_cloned.borrow().width();
-                                let y_clip = game_wind_cloned.borrow().height();
+                                let image = match PngImage::load(&path_image) {
+                                    Ok(img) => img,
+                                    Err(err) => {
+                                        eprintln!("Cannot load {:?}, error {}", path_image, err);
+                                        return;
+                                    }
+                                };
+                                frame.set_image(Some(image));
 
-                                draw::push_clip(0, 0, x_clip, y_clip);
-
-                                let x_text = x_clip / 3;
-                                let y_text = y_clip / 2;
-                                let font_size = (y_text as f32 * 0.3) as i32;
-                                println!(
-                                    "width: {}, height: {}, font size: {}, outcome: {}",
-                                    x_text, y_text, font_size, outcome
+                                let mut play_again_button = Button::new(
+                                    1024 / 2,
+                                    1024 / 4 - 200 / 2,
+                                    200 / 2,
+                                    200 / 2,
+                                    "Play again?",
                                 );
-                                draw::set_draw_color(enums::Color::Red);
-                                draw::draw_rect(x_text, y_text, 50, 50);
-                                */
-                                /*
-                                draw::set_font(enums::Font::by_name(&font_cloned), font_size);
-                                draw::draw_text(&outcome, x_text, y_text);
-                                draw::pop_clip();
-                                game_wind_cloned.borrow_mut().redraw();
-                                */
 
-                                /*
-                                let label = &format!("Winner is {:?}", winner);
-                                draw::set_font(enums::Font::by_name(&font_cloned), font_size);
-                                draw::set_draw_color(enums::Color::Red);
-                                draw::draw_text2(
-                                    label,
-                                    0,
-                                    0,
-                                    width,
-                                    height,
-                                    enums::Align::Center,
-                                );
-                                game_wind_cloned.borrow_mut().redraw();
+                                let result_wind_closed = result_wind.clone();
+                                let board_cloned = board.clone();
+                                play_again_button.set_callback(move |_| {
+                                    result_wind_closed.borrow_mut().hide();
+                                    board_cloned.borrow_mut().reset();
+                                    // TODO reset the grid
+                                });
 
-                                play_again_button_cloned.borrow_mut().show();
-                                */
+                                result_wind.borrow_mut().end();
+                                result_wind.borrow_mut().show();
                             }
                         }
                     });
