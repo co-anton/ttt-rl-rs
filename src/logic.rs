@@ -213,7 +213,7 @@ impl Board {
     }
 
     /// Given a sequence, returns the winner if there's any
-    fn find_winner(&self, sequence: &Vec<CellState>) -> Option<CellState> {
+    fn find_winner(&self, sequence: &[CellState]) -> Option<CellState> {
         let mut count_consecutive = 0;
         let mut previous_cell = CellState::Empty;
         for cell in sequence.iter() {

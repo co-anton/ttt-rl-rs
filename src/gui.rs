@@ -2,9 +2,9 @@ use fltk::{
     app, button::Button, draw, enums, frame::Frame, image::PngImage, input::Input, prelude::*,
     window::Window,
 };
-use std::path::Path;
+// use std::path::Path;
+use std::cell::RefCell;
 use std::rc::Rc;
-use std::{cell::RefCell, path::PathBuf};
 
 use crate::logic::{Board, CellState};
 
@@ -12,19 +12,20 @@ pub struct TicTacToeApp {}
 
 #[derive(PartialEq)]
 enum Outcomes {
-    WIN,
-    LOSS,
-    DRAW,
-    UNDEFINED,
+    Win,
+    Loss,
+    Draw,
+    Undefined,
 }
+
+const WIN_IMAGE: &[u8] = include_bytes!("../assets/win.png");
+const LOSS_IMAGE: &[u8] = include_bytes!("../assets/loss.png");
+const DRAW_IMAGE: &[u8] = include_bytes!("../assets/draw.png");
+const EMPTY_IMAGE: &[u8] = &[];
 
 impl TicTacToeApp {
     pub fn run() {
         let app = app::App::default();
-        let font = app
-            .load_font(Path::new("assets/FiraCode-Regular.ttf"))
-            .unwrap();
-
         // Setup stage
         let wind = Rc::new(RefCell::new(Window::new(
             100,
@@ -36,16 +37,11 @@ impl TicTacToeApp {
 
         let mut board_size_input = Input::new(160, 50, 80, 30, "Board Size:");
         board_size_input.set_value("3");
-        board_size_input.set_text_font(enums::Font::by_name(&font));
-        board_size_input.set_label_font(enums::Font::by_name(&font));
 
         let mut win_condition_input = Input::new(160, 100, 80, 30, "Win Condition:");
         win_condition_input.set_value("3");
-        win_condition_input.set_text_font(enums::Font::by_name(&font));
-        win_condition_input.set_label_font(enums::Font::by_name(&font));
 
         let mut submit_button = Button::new(160, 150, 120, 60, "Start the game!");
-        submit_button.set_label_font(enums::Font::by_name(&font));
 
         let board_size_clone = board_size_input.clone();
         let win_condition_clone = win_condition_input.clone();
@@ -72,20 +68,6 @@ impl TicTacToeApp {
                 "Tic Tac Toe",
             )));
             game_wind.borrow_mut().make_resizable(true);
-            /*
-            let _game_wind_cloned = game_wind.clone();
-
-            let play_again_button =
-                Rc::new(RefCell::new(Button::new(220, 10, 100, 40, "Play Again")));
-            play_again_button.borrow_mut().hide();
-            let _play_again_button_cloned = play_again_button.clone();
-
-            play_again_button.borrow_mut().set_callback(move |_| {
-                _board_cloned.borrow_mut().reset();
-                _play_again_button_cloned.borrow_mut().hide();
-                _game_wind_cloned.borrow_mut().redraw();
-            });
-            */
 
             // Draw lines between buttons
             {
@@ -128,8 +110,6 @@ impl TicTacToeApp {
                     let cell = Rc::new(RefCell::new(cell));
                     let cell_cloned = cell.clone();
                     let board = _board.clone();
-                    // let play_again_button_cloned = play_again_button.clone();
-                    // let font_cloned = font.clone();
                     let game_wind_cloned = game_wind.clone();
 
                     // Callback closure
@@ -150,26 +130,26 @@ impl TicTacToeApp {
                             println!("Played move [{}, {}]", i, j);
 
                             // End conditions
-                            let mut outcome = Outcomes::UNDEFINED;
+                            let mut outcome = Outcomes::Undefined;
 
                             // Win condition
                             if let Some(winner) = board.borrow_mut().is_winner() {
                                 println!("Winner: {:?}", winner);
                                 outcome = match winner {
-                                    CellState::Empty => Outcomes::UNDEFINED,
-                                    CellState::X => Outcomes::WIN,
-                                    CellState::O => Outcomes::LOSS,
+                                    CellState::Empty => Outcomes::Undefined,
+                                    CellState::X => Outcomes::Win,
+                                    CellState::O => Outcomes::Loss,
                                 }
                             }
 
                             // Board full condition
-                            if board.borrow_mut().is_board_full() && outcome == Outcomes::UNDEFINED
+                            if board.borrow_mut().is_board_full() && outcome == Outcomes::Undefined
                             {
                                 println!("Board full");
-                                outcome = Outcomes::DRAW;
+                                outcome = Outcomes::Draw;
                             }
 
-                            if outcome != Outcomes::UNDEFINED {
+                            if outcome != Outcomes::Undefined {
                                 game_wind_cloned.borrow_mut().hide();
                                 // Create a new window
                                 let result_wind = Rc::new(RefCell::new(Window::new(
@@ -180,20 +160,22 @@ impl TicTacToeApp {
                                     "Game Ended",
                                 )));
                                 let mut frame = Frame::new(0, 0, 1024, 1024, "");
-                                let path_image: PathBuf = match outcome {
-                                    Outcomes::WIN => PathBuf::from("assets/win.png"),
-                                    Outcomes::DRAW => PathBuf::from("assets/draw.png"),
-                                    Outcomes::LOSS => PathBuf::from("assets/loss.png"),
-                                    Outcomes::UNDEFINED => PathBuf::from(""),
+
+                                let image_bytes = match outcome {
+                                    Outcomes::Win => WIN_IMAGE,
+                                    Outcomes::Draw => DRAW_IMAGE,
+                                    Outcomes::Loss => LOSS_IMAGE,
+                                    Outcomes::Undefined => EMPTY_IMAGE,
                                 };
 
-                                let image = match PngImage::load(&path_image) {
+                                let image = match PngImage::from_data(image_bytes) {
                                     Ok(img) => img,
                                     Err(err) => {
-                                        eprintln!("Cannot load {:?}, error {}", path_image, err);
+                                        eprintln!("Cannot load image, error {}", err);
                                         return;
                                     }
                                 };
+
                                 frame.set_image(Some(image));
 
                                 /*
