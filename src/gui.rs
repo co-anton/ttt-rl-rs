@@ -64,12 +64,16 @@ impl TicTacToeApp {
             // Train agent
             let mut agent: Option<Rc<RefCell<QTable>>> = None;
             if train_agent {
+                use std::time::Instant;
+                let start = Instant::now();
                 agent = Some(Rc::new(RefCell::new(train(
                     1000,
-                    100,
+                    200,
                     board_size,
                     win_condition,
                 ))));
+                let duration = start.elapsed();
+                println!("Trained agent in: {:?}", duration);
             }
             let game_window_size = board_size as i32 * button_size;
 
@@ -124,7 +128,7 @@ impl TicTacToeApp {
                     let cell_cloned = cell.clone();
                     let board = _board.clone();
                     let game_wind_cloned = game_wind.clone();
-                    let agent_cloned = agent.as_ref().map(|agent_ref| agent_ref.clone());
+                    let agent_cloned = agent.as_ref().cloned();
 
                     // Callback closure
                     cell.borrow_mut().set_callback(move |_| {

@@ -48,7 +48,7 @@ impl QTable {
             .table
             .get(&StateAction {
                 state: state.clone(),
-                action: action.clone(),
+                action,
             })
             .unwrap_or(&0.0)
     }
@@ -58,20 +58,20 @@ impl QTable {
         state: &State,
         action: Action,
         state_after_action: &State,
-        possible_actions: &Vec<Action>,
+        possible_actions: &[Action],
         reward: i32,
     ) {
-        let current_q = self.get_q(state, action.clone());
+        let current_q = self.get_q(state, action);
         let max_q = possible_actions
             .iter()
-            .map(|next_action| self.get_q(state_after_action, next_action.clone()))
+            .map(|next_action| self.get_q(state_after_action, *next_action))
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap_or(0.0);
         let new_q = current_q + self.alpha * (reward as f64 + self.gamma * max_q - current_q);
         self.table.insert(
             StateAction {
                 state: state.clone(),
-                action: action.clone(),
+                action,
             },
             new_q,
         );
@@ -84,8 +84,8 @@ impl QTable {
             *possible_actions
                 .iter()
                 .max_by(|&a, &b| {
-                    self.get_q(state, a.clone())
-                        .partial_cmp(&self.get_q(state, b.clone()))
+                    self.get_q(state, *a)
+                        .partial_cmp(&self.get_q(state, *b))
                         .unwrap()
                 })
                 .unwrap()
